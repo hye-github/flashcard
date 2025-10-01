@@ -545,6 +545,10 @@
         } else if (isRightSwipe) {
           goToPrev();
         }
+
+        // 💡 NEW: 스와이프가 끝난 후 상태를 초기화
+        setTouchStart(null);
+        setTouchEnd(null);
       };
 
       const subCategories = selectedMainCategory === 'all' 
