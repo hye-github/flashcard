@@ -550,10 +550,6 @@
         } else if (isRightSwipe) {
           goToPrev();
         }
-
-        // 💡 NEW: 스와이프가 끝난 후 상태를 초기화
-        setTouchStart(null);
-        setTouchEnd(null);
       };
 
       const subCategories = selectedMainCategory === 'all' 
@@ -910,19 +906,14 @@
             {currentCard ? (
               <div className="mb-6">
 
-              {/* 💡 1. 카테고리 표시를 맨 위로 이동하고, 카드 번호 스타일 적용 */}
-              <div className="text-center text-gray-600 mb-2 order-1">
-                <div className="text-sm font-semibold text-gray-700">
-                    {currentCard.original.mainCategory}
-                    {currentCard.original.subCategory && ` > ${currentCard.original.subCategory}`}
+                {/* 💡 1. 카테고리 표시를 맨 위로 이동하고, 카드 번호 스타일 적용 */}
+                <div className="text-center text-gray-600 mb-2 order-1">
+                  <div className="text-sm font-semibold text-gray-700">
+                      {currentCard.original.mainCategory}
+                      {currentCard.original.subCategory && ` > ${currentCard.original.subCategory}`}
+                  </div>
                 </div>
-              </div>
-              
-              {/* 💡 2. 카드 번호 표시를 아래로 이동하고, 카테고리 스타일 적용 */}
-              <div className="text-center text-gray-600 mb-2 order-2">
-                {currentCardIndex + 1} / {shuffledCards.length}
-              </div>
-
+                
                 <div 
                   className="relative w-full h-80 cursor-pointer perspective-1000"
                   onClick={() => setIsFlipped(!isFlipped)}
@@ -981,6 +972,11 @@
                   >
                     이전
                   </button>
+                  
+                  {/* 💡 2. 카드 번호 표시를 아래로 이동하고, 카테고리 스타일 적용 */}
+                  <div className="text-center text-gray-600 mb-2 order-2">
+                    {currentCardIndex + 1} / {shuffledCards.length}
+                  </div>
                   
                   <button
                     onClick={goToNext}
