@@ -24,6 +24,11 @@
     .rotate-x-180 {
       transform: rotateX(180deg);
     }    
+    /* 💡 NEW: 카테고리/카드 번호 영역을 위한 Flexbox 스타일 */
+    .card-info-container {
+      display: flex;
+      flex-direction: column; /* 세로로 정렬 */
+    }
     /* 💡 NEW: 이 규칙을 추가하여 가로 스크롤을 강제로 비활성화합니다. */
     body {
       overflow-x: hidden;
@@ -904,10 +909,20 @@
 
             {currentCard ? (
               <div className="mb-6">
-                <div className="text-center text-gray-600 mb-2">
-                  {currentCardIndex + 1} / {shuffledCards.length}
+
+              {/* 💡 1. 카테고리 표시를 맨 위로 이동하고, 카드 번호 스타일 적용 */}
+              <div className="text-center text-gray-600 mb-2 order-1">
+                <div className="text-sm font-semibold text-gray-700">
+                    {currentCard.original.mainCategory}
+                    {currentCard.original.subCategory && ` > ${currentCard.original.subCategory}`}
                 </div>
-                
+              </div>
+              
+              {/* 💡 2. 카드 번호 표시를 아래로 이동하고, 카테고리 스타일 적용 */}
+              <div className="text-center text-gray-600 mb-2 order-2">
+                {currentCardIndex + 1} / {shuffledCards.length}
+              </div>
+
                 <div 
                   className="relative w-full h-80 cursor-pointer perspective-1000"
                   onClick={() => setIsFlipped(!isFlipped)}
@@ -966,11 +981,6 @@
                   >
                     이전
                   </button>
-                  
-                  <div className="text-sm text-gray-600 text-center">
-                    {currentCard.original.mainCategory}
-                    {currentCard.original.subCategory && ` > ${currentCard.original.subCategory}`}
-                  </div>
                   
                   <button
                     onClick={goToNext}
