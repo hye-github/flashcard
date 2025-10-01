@@ -943,7 +943,7 @@
                                                 <div className="flex-1 flex items-center justify-center">
                                                       <div
                                                         className={`break-words text-center font-bold ${
-                                                          currentCard.frontType === 'definition' ? 'text-xl' : 'text-xl'
+                                                          currentCard.frontType === 'term' ? 'text-3xl' : 'text-xl'
                                                         } text-gray-800`}
                                                       >
                                                         {currentCard.front}
@@ -959,7 +959,7 @@
                                                 <div className="flex-1 flex items-center justify-center">
                                                     <div
                                                         className={`break-words text-center font-bold ${
-                                                          currentCard.frontType === 'definition' ? 'text-xl' : 'text-3xl'
+                                                          currentCard.backType === 'term' ? 'text-3xl' : 'text-xl'
                                                         } text-white`}
                                                       >
                                                         {currentCard.back}
