@@ -447,7 +447,7 @@
                         alert("카드 업로드 중 오류가 발생했습니다.");
                     }
                 };
-                reader.readAsText(file);
+                reader.readAsText(file, 'UTF-8');
             };
 
             const handleCSVDownload = () => {
