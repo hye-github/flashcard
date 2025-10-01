@@ -814,93 +814,98 @@
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-                <select
-                  value={selectedMainCategory}
-                  onChange={(e) => {
-                    setSelectedMainCategory(e.target.value);
-                    setSelectedSubCategory('all');
-                    setCurrentCardIndex(0);
-                  }}
-                  className="p-2 border rounded-lg"
-                >
-                  <option value="all">모든 카테고리</option>
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.main}>{cat.main}</option>
-                  ))}
-                </select>
-
-                {selectedMainCategory !== 'all' && (
-                  <select
-                    value={selectedSubCategory}
+            {/* 필터 영역 */}
+            <div className="space-y-3 mb-3">
+                {/* PC: 한 줄, 모바일: 각각 한 줄 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <select
+                    value={selectedMainCategory}
                     onChange={(e) => {
-                      setSelectedSubCategory(e.target.value);
-                      setCurrentCardIndex(0);
+                        setSelectedMainCategory(e.target.value);
+                        setSelectedSubCategory('all');
+                        setCurrentCardIndex(0);
                     }}
                     className="p-2 border rounded-lg"
-                  >
-                    <option value="all">모든 세부 카테고리</option>
-                    {subCategories.map((sub, i) => (
-                      <option key={i} value={sub}>{sub}</option>
+                    >
+                    <option value="all">모든 카테고리</option>
+                    {categories.map((cat) => (
+                        <option key={cat.id} value={cat.main}>{cat.main}</option>
                     ))}
-                  </select>
-                )}
+                    </select>
 
-                <button
-                  onClick={() => {
-                    setShowFavoritesOnly(!showFavoritesOnly);
-                    setCurrentCardIndex(0);
-                  }}
-                  className={`p-2 border rounded-lg flex items-center justify-center gap-2 ${
-                    showFavoritesOnly ? 'bg-yellow-100 border-yellow-400' : 'bg-white'
-                  }`}
-                >
-                  <Star size={18} fill={showFavoritesOnly ? '#fbbf24' : 'none'} />
-                  즐겨찾기 {showFavoritesOnly && '만'}
-                </button>
-              </div>
+                    {selectedMainCategory !== 'all' && (
+                    <select
+                        value={selectedSubCategory}
+                        onChange={(e) => {
+                        setSelectedSubCategory(e.target.value);
+                        setCurrentCardIndex(0);
+                        }}
+                        className="p-2 border rounded-lg"
+                    >
+                        <option value="all">모든 세부 카테고리</option>
+                        {subCategories.map((sub, i) => (
+                        <option key={i} value={sub}>{sub}</option>
+                        ))}
+                    </select>
+                    )}
+                </div>
 
-              <div className="flex gap-2 justify-end">
-                <button
-                  onClick={() => {
-                    if (displayMode === 'random') {
-                      const newMode = previousDisplayMode === 'term-to-def' ? 'def-to-term' : 'term-to-def';
-                      setPreviousDisplayMode(newMode);
-                    } else {
-                      const newMode = displayMode === 'term-to-def' ? 'def-to-term' : 'term-to-def';
-                      setDisplayMode(newMode);
-                      setPreviousDisplayMode(newMode);
-                    }
-                    setIsFlipped(false);
-                  }}
-                  className={`p-2 rounded-lg ${
-                    displayMode === 'def-to-term' || (displayMode === 'random' && previousDisplayMode === 'def-to-term') 
-                      ? 'bg-blue-200' 
-                      : 'bg-gray-200 hover:bg-gray-300'
-                  }`}
-                  title={displayMode === 'def-to-term' ? '정의 → 용어' : '용어 → 정의'}
-                >
-                  <ArrowLeftRight size={18} />
-                </button>
-                <button
-                  onClick={() => {
-                    if (displayMode === 'random') {
-                      setDisplayMode(previousDisplayMode);
-                    } else {
-                      setPreviousDisplayMode(displayMode);
-                      setDisplayMode('random');
-                      setCurrentRandomSeed(Math.random());
-                    }
-                    setIsFlipped(false);
-                  }}
-                  className={`p-2 rounded-lg ${
-                    displayMode === 'random' ? 'bg-purple-200' : 'bg-gray-200 hover:bg-gray-300'
-                  }`}
-                  title="랜덤"
-                >
-                  <Shuffle size={18} />
-                </button>
-              </div>
+                {/* PC: 한 줄, 모바일: 한 줄 (즐겨찾기, <->, 셔플) */}
+                <div className="flex gap-2">
+                    <button
+                    onClick={() => {
+                        setShowFavoritesOnly(!showFavoritesOnly);
+                        setCurrentCardIndex(0);
+                    }}
+                    className={`flex-1 p-2 border rounded-lg flex items-center justify-center gap-2 ${
+                        showFavoritesOnly ? 'bg-yellow-100 border-yellow-400' : 'bg-white'
+                    }`}
+                    >
+                    <Star size={18} fill={showFavoritesOnly ? '#fbbf24' : 'none'} />
+                    <span className="text-sm">즐겨찾기</span>
+                    </button>
+
+                    <button
+                    onClick={() => {
+                        if (displayMode === 'random') {
+                        const newMode = previousDisplayMode === 'term-to-def' ? 'def-to-term' : 'term-to-def';
+                        setPreviousDisplayMode(newMode);
+                        } else {
+                        const newMode = displayMode === 'term-to-def' ? 'def-to-term' : 'term-to-def';
+                        setDisplayMode(newMode);
+                        setPreviousDisplayMode(newMode);
+                        }
+                        setIsFlipped(false);
+                    }}
+                    className={`p-2 rounded-lg ${
+                        displayMode === 'def-to-term' || (displayMode === 'random' && previousDisplayMode === 'def-to-term') 
+                        ? 'bg-blue-200' 
+                        : 'bg-gray-200 hover:bg-gray-300'
+                    }`}
+                    title={displayMode === 'def-to-term' ? '정의 → 용어' : '용어 → 정의'}
+                    >
+                    <ArrowLeftRight size={18} />
+                    </button>
+
+                    <button
+                    onClick={() => {
+                        if (displayMode === 'random') {
+                        setDisplayMode(previousDisplayMode);
+                        } else {
+                        setPreviousDisplayMode(displayMode);
+                        setDisplayMode('random');
+                        setCurrentRandomSeed(Math.random());
+                        }
+                        setIsFlipped(false);
+                    }}
+                    className={`p-2 rounded-lg ${
+                        displayMode === 'random' ? 'bg-purple-200' : 'bg-gray-200 hover:bg-gray-300'
+                    }`}
+                    title="랜덤"
+                    >
+                    <Shuffle size={18} />
+                    </button>
+                </div>
             </div>
 
             {currentCard ? (
