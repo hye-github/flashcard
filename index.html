@@ -964,6 +964,7 @@
                   </div>
                 </div>
 
+                {/* 💡 2. 버튼 컨테이너 및 카드 번호 중앙 정렬 (수정된 부분) */}
                 <div className="flex justify-between items-center mt-6">
                   <button
                     onClick={goToPrev}
@@ -973,10 +974,10 @@
                     이전
                   </button>
                   
-                  {/* 💡 2. 카드 번호 표시를 아래로 이동하고, 카테고리 스타일 적용 */}
-                  <div className="text-center text-gray-600 mb-2 order-2">
-                    {currentCardIndex + 1} / {shuffledCards.length}
-                  </div>
+                  {/* 🔴 수정: 카드 번호 표시를 버튼들 사이에 배치하고 중앙 정렬합니다. */}
+                  <div className="text-sm text-gray-600 text-center flex-1"> 
+                      {currentCardIndex + 1} / {shuffledCards.length}
+                  </div> 
                   
                   <button
                     onClick={goToNext}
