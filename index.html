@@ -941,7 +941,11 @@
                                                     {currentCard.frontType === 'term' ? '용어' : '정의'}
                                                 </div>
                                                 <div className="flex-1 flex items-center justify-center">
-                                                    <div className="text-3xl font-bold text-gray-800 break-words text-center">
+                                                      <div
+                                                        className={`break-words text-center font-bold ${
+                                                          currentCard.frontType === 'definition' ? 'text-3xl' : 'text-xl'
+                                                        } text-gray-800`}
+                                                      >
                                                         {currentCard.front}
                                                     </div>
                                                 </div>
@@ -953,7 +957,11 @@
                                                     {currentCard.backType === 'term' ? '용어' : '정의'}
                                                 </div>
                                                 <div className="flex-1 flex items-center justify-center">
-                                                    <div className="text-2xl text-white break-words text-center">
+                                                    <div
+                                                        className={`break-words text-center font-bold ${
+                                                          currentCard.frontType === 'definition' ? 'text-3xl' : 'text-xl'
+                                                        } text-white`}
+                                                      >
                                                         {currentCard.back}
                                                     </div>
                                                 </div>
