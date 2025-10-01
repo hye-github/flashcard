@@ -925,11 +925,11 @@
                                     </div>
 
                                     <div
-                                        className="relative w-full h-80 cursor-pointer perspective-1000"
-                                        onClick={() => setIsFlipped(!isFlipped)}
-                                        onTouchStart={onTouchStart}
-                                        onTouchMove={onTouchMove}
-                                        onTouchEnd={onTouchEnd}
+                                      className="relative w-full h-80 cursor-pointer perspective-1000"
+                                      onClick={() => setIsFlipped(!isFlipped)}
+                                      onTouchStart={(e) => e.stopPropagation()}  // 터치 시작 이벤트에서 전파 막기
+                                      onTouchMove={(e) => e.preventDefault()}    // 드래그 시 스크롤 방지
+                                      onTouchEnd={(e) => e.stopPropagation()}    // 터치 종료 이벤트에서 전파 막기
                                     >
                                         <div
                                             className={`absolute w-full h-full transition-transform duration-500 transform-style-3d ${isFlipped ? 'rotate-x-180' : ''
