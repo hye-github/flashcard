@@ -925,25 +925,11 @@
                                     </div>
 
                                     <div
-                                      className="relative w-full h-80 cursor-pointer perspective-1000 overflow-hidden"
-                                      onClick={() => setIsFlipped(!isFlipped)}
-                                      onTouchStart={(e) => {
-                                        const touch = e.touches[0];
-                                        // 터치 시작 좌표 저장
-                                        e.currentTarget.startX = touch.clientX;
-                                        e.currentTarget.startY = touch.clientY;
-                                      }}
-                                      onTouchMove={(e) => {
-                                        const touch = e.touches[0];
-                                        const deltaX = touch.clientX - e.currentTarget.startX;
-                                        const deltaY = touch.clientY - e.currentTarget.startY;
-                                    
-                                        // 수직 이동이 수평 이동보다 크면 페이지 스크롤 차단
-                                        if (Math.abs(deltaY) > Math.abs(deltaX)) {
-                                          e.preventDefault();
-                                        }
-                                        // 수평 이동이면 다음/이전 카드 스와이프는 기존 로직에서 처리
-                                      }}
+                                        className="relative w-full h-80 cursor-pointer perspective-1000"
+                                        onClick={() => setIsFlipped(!isFlipped)}
+                                        onTouchStart={onTouchStart}
+                                        onTouchMove={onTouchMove}
+                                        onTouchEnd={onTouchEnd}
                                     >
                                         <div
                                             className={`absolute w-full h-full transition-transform duration-500 transform-style-3d ${isFlipped ? 'rotate-x-180' : ''
