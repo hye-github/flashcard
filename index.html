@@ -568,7 +568,7 @@
                 return (
                     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
                         <div className="max-w-6xl mx-auto">
-                            <div className="bg-white rounded-lg shadow-md p-6 mb-3">
+                            <div className="bg-white rounded-lg shadow-sm p-3 mb-3">
                                 <div className="flex justify-between items-center mb-6">
                                     <h1 className="text-3xl font-bold text-gray-800">관리자 모드</h1>
                                     <button
@@ -791,7 +791,7 @@
             return (
                 <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 p-1">
                     <div className="max-w-4xl mx-auto">
-                        <div className="bg-white rounded-lg shadow-lg p-3 mb-6">
+                        <div className="bg-white rounded-lg shadow-sm p-3 mb-3">
                             <div className="flex justify-between items-center mb-4">
                                 <h1 className="text-xl font-bold text-gray-800">낱말카드 학습</h1>
 
@@ -925,7 +925,7 @@
                                     </div>
 
                                     <div
-                                        className="relative w-full h-80 cursor-pointer perspective-1000"
+                                        className="relative w-full h-96 cursor-pointer perspective-1000"
                                         onClick={() => setIsFlipped(!isFlipped)}
                                         onTouchStart={onTouchStart}
                                         onTouchMove={onTouchMove}
@@ -998,7 +998,7 @@
                                     </div>
                                 </div>
                             ) : (
-                                <div className="bg-white rounded-lg shadow-lg p-12 text-center">
+                                <div className="bg-white rounded-lg shadow-sm p-12 text-center">
                                     <div className="text-gray-400 text-xl">
                                         카드가 없습니다. 관리자 모드에서 카드를 추가해주세요.
                                     </div>
