@@ -361,22 +361,47 @@
                 }
             };
 
-            // ----------------------------------------------------
-            // 🔥 CSV 업로드 시 카테고리 자동 등록 로직 추가
-            // ----------------------------------------------------
+            // 🔥 NEW: 선택된 카드 삭제
+            const handleDeleteSelectedCards = async () => {
+                if (selectedCards.length === 0) {
+                    alert('삭제할 카드를 선택해주세요.');
+                    return;
+                }
+
+                if (confirm(`선택한 ${selectedCards.length}개의 카드를 삭제하시겠습니까?`)) {
+                    try {
+                        const batch = db.batch();
+                        selectedCards.forEach(cardId => {
+                            const cardRef = db.collection('flashcards').doc(cardId);
+                            batch.delete(cardRef);
+                        });
+                        await batch.commit();
+                        alert(`${selectedCards.length}개의 카드가 삭제되었습니다.`);
+                        setSelectedCards([]);
+                    } catch (error) {
+                        console.error("카드 삭제 오류:", error);
+                        alert("카드 삭제 중 오류가 발생했습니다.");
+                    }
+                }
+            };
+
+            // 🔥 NEW: 카드 선택 토글
+            const toggleCardSelection = (cardId) => {
+                setSelectedCards(prev => 
+                    prev.includes(cardId) 
+                        ? prev.filter(id => id !== cardId)
+                        : [...prev, cardId]
+                );
+            };
+
+            // 🔥 MODIFIED: CSV 업로드 - 중복 체크    
             const handleCSVUpload = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
 
                 const reader = new FileReader();
                 reader.onload = async (event) => {
-                    let text = event.target.result;
-                    
-                    // BOM 제거 (있을 경우)
-                    if (text.charCodeAt(0) === 0xFEFF) {
-                        text = text.slice(1);
-                    }
-                    
+                    const text = event.target.result;
                     const lines = text.split('\n').filter(line => line.trim());
 
                     const newCards = lines.slice(1).map(line => {
@@ -395,6 +420,7 @@
                         return;
                     }
 
+                    // 중복 체크
                     const existingTerms = cards.map(c => c.term.toLowerCase());
                     const duplicates = [];
                     const cardsToAdd = newCards.filter(card => {
@@ -414,6 +440,7 @@
                         return;
                     }
 
+                    // 카테고리 업데이트
                     const categoryUpdates = {};
                     cardsToAdd.forEach(card => {
                         const main = card.mainCategory;
@@ -467,7 +494,7 @@
                         alert("카드 업로드 중 오류가 발생했습니다.");
                     }
                 };
-                reader.readAsText(file, 'UTF-8'); // UTF-8로 읽기
+                reader.readAsText(file);
             };
 
             const handleCSVDownload = () => {
@@ -484,7 +511,6 @@
                 link.download = 'flashcards.csv';
                 link.click();
             };
-
 
             const filteredCards = cards.filter(card => {
                 if (showFavoritesOnly && !card.favorite) return false;
