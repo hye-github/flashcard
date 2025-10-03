@@ -29,16 +29,50 @@
             transform: rotateX(180deg);
         }
 
-        /* 💡 NEW: 카테고리/카드 번호 영역을 위한 Flexbox 스타일 */
-        .card-info-container {
-            display: flex;
-            flex-direction: column;
-            /* 세로로 정렬 */
+        /* 🔥 NEW: 세로 스크롤 완전 차단 */
+        html, body {
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            overscroll-behavior: none; /* iOS 바운스 방지 */
         }
 
-        /* 💡 NEW: 이 규칙을 추가하여 가로 스크롤을 강제로 비활성화합니다. */
-        body {
-            overflow-x: hidden;
+        #root {
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* 학습 모드 컨테이너 */
+        .study-mode-container {
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 비밀번호 입력 모달 스타일 */
+        .password-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .password-modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 90%;
         }
     </style>
 </head>
@@ -47,11 +81,8 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
 
-        // ----------------------------------------------------
-        // 🔥 1. Firebase 설정
-        // ----------------------------------------------------
         const firebaseConfig = {
             apiKey: "AIzaSyAsYx34KpX5PXCCW2Ol2-XWlQYJfBm976s",
             authDomain: "flashcard-c5a7d.firebaseapp.com",
@@ -61,14 +92,13 @@
             appId: "1:432209869357:web:ff6b143534ae643795d6a4",
         };
 
-        // Firebase 앱 초기화
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
         const db = firebase.firestore();
         const auth = firebase.auth();
 
-        // Lucide React icons as components
+        // Icons
         const Plus = ({ size = 24 }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -132,8 +162,60 @@
             </svg>
         );
 
+        // 🔥 NEW: 비밀번호 입력 모달 컴포넌트
+        function PasswordModal({ onSubmit, onCancel }) {
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (email && password) {
+                    onSubmit(email, password);
+                }
+            };
+
+            return (
+                <div className="password-modal">
+                    <div className="password-modal-content">
+                        <h2 className="text-xl font-bold mb-4">관리자 로그인</h2>
+                        <form onSubmit={handleSubmit}>
+                            <input
+                                type="email"
+                                placeholder="이메일"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="w-full p-2 border rounded mb-3"
+                                autoFocus
+                            />
+                            <input
+                                type="password"
+                                placeholder="비밀번호"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full p-2 border rounded mb-4"
+                            />
+                            <div className="flex gap-2">
+                                <button
+                                    type="submit"
+                                    className="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                                >
+                                    로그인
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={onCancel}
+                                    className="flex-1 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+                                >
+                                    취소
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
         function FlashcardApp() {
-            // categories 상태는 이제 Firestore에서 관리
             const [categories, setCategories] = useState([]);
             const [cards, setCards] = useState([]);
             const [isAdmin, setIsAdmin] = useState(false);
@@ -151,40 +233,61 @@
             const [editingCard, setEditingCard] = useState(null);
             const [touchStart, setTouchStart] = useState(null);
             const [touchEnd, setTouchEnd] = useState(null);
+            const [selectedCards, setSelectedCards] = useState([]); // 🔥 NEW: 선택된 카드들
+            const [showPasswordModal, setShowPasswordModal] = useState(false); // 🔥 NEW: 비밀번호 모달
 
             const [newCategory, setNewCategory] = useState({ main: '', sub: '' });
             const [newCard, setNewCard] = useState({ id: null, mainCategory: '', subCategory: '', term: '', definition: '', favorite: false });
 
-            const [user, setUser] = useState(null); // <-- 💡 로그인 사용자 상태 추가
+            const [user, setUser] = useState(null);
+            const cardAreaRef = useRef(null); // 🔥 NEW: 카드 영역 참조
 
             useEffect(() => {
-                // 🔥 NEW: 로그인 상태 변화 리스너 설정
                 const unsubscribeAuth = auth.onAuthStateChanged((currentUser) => {
                     setUser(currentUser);
-                    // 로그인되어 있다면 isAdmin을 true로 설정 (별도 관리자 계층 없이)
                     if (!currentUser) {
-                        setIsAdmin(false); // 로그아웃 시에만 해제
+                        setIsAdmin(false);
                     }
                 });
 
                 return () => {
-                    // ... (기존 unsubscribeCards, unsubscribeCategories)
-                    unsubscribeAuth(); // <-- 💡 Auth 리스너 해제
+                    unsubscribeAuth();
                 };
             }, []);
 
-            // ----------------------------------------------------
-            // 🔥 NEW: 로그인 및 로그아웃 함수
-            // ----------------------------------------------------
-            const handleLogin = async () => {
-                const email = prompt("관리자 이메일을 입력하세요.");
-                const password = prompt("비밀번호를 입력하세요.");
-                if (!email || !password) return;
+            // 🔥 NEW: 세로 스크롤 차단 및 터치 이벤트 관리
+            useEffect(() => {
+                const preventScroll = (e) => {
+                    // 카드 영역 내부에서는 터치 이벤트 허용
+                    if (cardAreaRef.current && cardAreaRef.current.contains(e.target)) {
+                        return;
+                    }
+                    e.preventDefault();
+                };
 
+                // 터치 이동 시 세로 스크롤만 차단
+                const preventVerticalScroll = (e) => {
+                    if (!cardAreaRef.current || !cardAreaRef.current.contains(e.target)) {
+                        e.preventDefault();
+                        return;
+                    }
+                };
+
+                document.addEventListener('touchmove', preventVerticalScroll, { passive: false });
+                document.addEventListener('wheel', preventScroll, { passive: false });
+
+                return () => {
+                    document.removeEventListener('touchmove', preventVerticalScroll);
+                    document.removeEventListener('wheel', preventScroll);
+                };
+            }, []);
+
+            // 🔥 MODIFIED: 비밀번호 모달 사용
+            const handleLogin = async (email, password) => {
                 try {
                     await auth.signInWithEmailAndPassword(email, password);
-                    // onAuthStateChanged 리스너가 user와 isAdmin 상태를 업데이트합니다.
                     alert("로그인 성공! 관리자 모드로 전환되었습니다.");
+                    setShowPasswordModal(false);
                 } catch (error) {
                     console.error("로그인 오류:", error);
                     alert("로그인에 실패했습니다: " + error.message);
@@ -198,11 +301,7 @@
                 }
             };
 
-            // ----------------------------------------------------
-            // 🔥 2. Firestore에서 카드 및 카테고리 로드
-            // ----------------------------------------------------
             useEffect(() => {
-                // Firestore에서 카드 실시간 리스너 설정
                 const unsubscribeCards = db.collection('flashcards').onSnapshot(snapshot => {
                     const fetchedCards = snapshot.docs.map(doc => ({
                         id: doc.id,
@@ -214,10 +313,9 @@
                     alert("카드를 불러오는 데 실패했습니다. 콘솔을 확인해주세요.");
                 });
 
-                // 🔥 NEW: Firestore에서 카테고리 실시간 리스너 설정
                 const unsubscribeCategories = db.collection('categories').onSnapshot(snapshot => {
                     const fetchedCategories = snapshot.docs.map(doc => ({
-                        id: doc.id, // 메인 카테고리 이름을 Document ID로 사용
+                        id: doc.id,
                         main: doc.id,
                         subs: doc.data().subs || []
                     }));
@@ -228,14 +326,11 @@
                 });
 
                 return () => {
-                    unsubscribeCards(); // 카드 리스너 해제
-                    unsubscribeCategories(); // 카테고리 리스너 해제
+                    unsubscribeCards();
+                    unsubscribeCategories();
                 };
             }, []);
 
-            // ----------------------------------------------------
-            // 🔥 3. 카테고리 저장/삭제 로직 (Firestore 연동)
-            // ----------------------------------------------------
             const handleAddCategory = async () => {
                 if (!newCategory.main.trim()) return;
 
@@ -243,19 +338,16 @@
                 const subCategoryName = newCategory.sub.trim();
 
                 try {
-                    // 메인 카테고리 이름을 문서 ID로 사용
                     const categoryRef = db.collection('categories').doc(mainCategoryName);
                     const doc = await categoryRef.get();
 
                     if (doc.exists) {
-                        // 기존 메인 카테고리에 세부 카테고리 추가
                         if (subCategoryName) {
                             await categoryRef.update({
                                 subs: firebase.firestore.FieldValue.arrayUnion(subCategoryName)
                             });
                         }
                     } else {
-                        // 새로운 메인 카테고리 추가
                         await categoryRef.set({
                             main: mainCategoryName,
                             subs: subCategoryName ? [subCategoryName] : []
@@ -272,7 +364,7 @@
             };
 
             const handleDeleteMainCategory = async (mainCategoryName) => {
-                if (confirm(`메인 카테고리 "${mainCategoryName}"를 삭제하시겠습니까? (경고: 이 카테고리를 사용하는 카드 데이터는 수동으로 정리해야 합니다.)`)) {
+                if (confirm(`메인 카테고리 "${mainCategoryName}"를 삭제하시겠습니까?`)) {
                     try {
                         await db.collection('categories').doc(mainCategoryName).delete();
                         alert(`메인 카테고리 "${mainCategoryName}"가 삭제되었습니다.`);
@@ -296,11 +388,6 @@
                     }
                 }
             };
-
-
-            // ----------------------------------------------------
-            // 카드 저장/수정/삭제 로직
-            // ----------------------------------------------------
 
             const toggleFavorite = async (cardId) => {
                 const cardRef = db.collection('flashcards').doc(cardId);
@@ -330,11 +417,9 @@
 
                 try {
                     if (newCard.id) {
-                        // 수정
                         await db.collection('flashcards').doc(newCard.id).update(cardToSave);
                         alert('카드가 수정되었습니다.');
                     } else {
-                        // 추가
                         await db.collection('flashcards').add(cardToSave);
                         alert('카드가 추가되었습니다.');
                     }
@@ -360,9 +445,40 @@
                 }
             };
 
-            // ----------------------------------------------------
-            // 🔥 CSV 업로드 시 카테고리 자동 등록 로직 추가
-            // ----------------------------------------------------
+            // 🔥 NEW: 선택된 카드 삭제
+            const handleDeleteSelectedCards = async () => {
+                if (selectedCards.length === 0) {
+                    alert('삭제할 카드를 선택해주세요.');
+                    return;
+                }
+
+                if (confirm(`선택한 ${selectedCards.length}개의 카드를 삭제하시겠습니까?`)) {
+                    try {
+                        const batch = db.batch();
+                        selectedCards.forEach(cardId => {
+                            const cardRef = db.collection('flashcards').doc(cardId);
+                            batch.delete(cardRef);
+                        });
+                        await batch.commit();
+                        alert(`${selectedCards.length}개의 카드가 삭제되었습니다.`);
+                        setSelectedCards([]);
+                    } catch (error) {
+                        console.error("카드 삭제 오류:", error);
+                        alert("카드 삭제 중 오류가 발생했습니다.");
+                    }
+                }
+            };
+
+            // 🔥 NEW: 카드 선택 토글
+            const toggleCardSelection = (cardId) => {
+                setSelectedCards(prev => 
+                    prev.includes(cardId) 
+                        ? prev.filter(id => id !== cardId)
+                        : [...prev, cardId]
+                );
+            };
+
+            // 🔥 MODIFIED: CSV 업로드 - 중복 체크
             const handleCSVUpload = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -384,13 +500,33 @@
                     }).filter(card => card.term && card.definition && card.mainCategory);
 
                     if (newCards.length === 0) {
-                        alert('유효한 카드가 CSV 파일에 없습니다. (메인 카테고리, 용어, 정의 필수)');
+                        alert('유효한 카드가 CSV 파일에 없습니다.');
                         return;
                     }
 
-                    // 1. 카테고리 업데이트 준비
+                    // 중복 체크
+                    const existingTerms = cards.map(c => c.term.toLowerCase());
+                    const duplicates = [];
+                    const cardsToAdd = newCards.filter(card => {
+                        if (existingTerms.includes(card.term.toLowerCase())) {
+                            duplicates.push(card.term);
+                            return false;
+                        }
+                        return true;
+                    });
+
+                    if (duplicates.length > 0) {
+                        alert(`다음 용어는 중복되어 등록되지 않았습니다:\n${duplicates.join(', ')}`);
+                    }
+
+                    if (cardsToAdd.length === 0) {
+                        alert('등록 가능한 카드가 없습니다.');
+                        return;
+                    }
+
+                    // 카테고리 업데이트
                     const categoryUpdates = {};
-                    newCards.forEach(card => {
+                    cardsToAdd.forEach(card => {
                         const main = card.mainCategory;
                         const sub = card.subCategory;
 
@@ -402,20 +538,17 @@
                         }
                     });
 
-                    // 2. 카테고리 업데이트 배치 작업 (Batch)
                     const categoryBatch = db.batch();
                     for (const mainCategoryName in categoryUpdates) {
                         const categoryRef = db.collection('categories').doc(mainCategoryName);
                         const subsToAdd = Array.from(categoryUpdates[mainCategoryName]);
 
                         if (subsToAdd.length > 0) {
-                            // 기존 문서에 세부 카테고리 배열을 추가 (중복 방지를 위해 arrayUnion 사용)
                             categoryBatch.set(categoryRef, {
                                 main: mainCategoryName,
                                 subs: firebase.firestore.FieldValue.arrayUnion(...subsToAdd)
-                            }, { merge: true }); // merge: true를 사용하여 기존 필드는 유지하고 subs만 업데이트/추가
+                            }, { merge: true });
                         } else {
-                            // 세부 카테고리 없이 메인 카테고리만 추가 (merge: true로 안전하게 처리)
                             categoryBatch.set(categoryRef, {
                                 main: mainCategoryName,
                                 subs: []
@@ -425,23 +558,21 @@
 
                     try {
                         await categoryBatch.commit();
-                        console.log("카테고리 자동 등록 및 업데이트 완료.");
                     } catch (error) {
-                        console.error("카테고리 자동 업데이트 오류:", error);
-                        alert("카테고리 업데이트 중 오류가 발생했습니다. 콘솔을 확인해주세요.");
-                        return; // 카테고리 저장 실패 시 카드 저장 중단
+                        console.error("카테고리 업데이트 오류:", error);
+                        alert("카테고리 업데이트 중 오류가 발생했습니다.");
+                        return;
                     }
 
-                    // 3. 카드 저장 배치 작업 (기존 로직)
                     const cardBatch = db.batch();
-                    newCards.forEach(card => {
+                    cardsToAdd.forEach(card => {
                         const newDocRef = db.collection('flashcards').doc();
                         cardBatch.set(newDocRef, card);
                     });
 
                     try {
                         await cardBatch.commit();
-                        alert(`${newCards.length}개의 카드와 ${Object.keys(categoryUpdates).length}개의 카테고리(혹은 업데이트)가 성공적으로 등록되었습니다.`);
+                        alert(`${cardsToAdd.length}개의 카드가 성공적으로 등록되었습니다.${duplicates.length > 0 ? `\n(${duplicates.length}개 중복 제외)` : ''}`);
                     } catch (error) {
                         console.error("카드 업로드 오류:", error);
                         alert("카드 업로드 중 오류가 발생했습니다.");
@@ -566,7 +697,7 @@
 
             if (isAdmin) {
                 return (
-                    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+                    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 overflow-y-auto">
                         <div className="max-w-6xl mx-auto">
                             <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                                 <div className="flex justify-between items-center mb-6">
@@ -581,7 +712,7 @@
 
                                 <div className="mb-8">
                                     <div className="flex justify-between items-center mb-4">
-                                        <h2 className="text-xl font-semibold">카테고리 관리 ({categories.length}개 - Firestore)</h2>
+                                        <h2 className="text-xl font-semibold">카테고리 관리 ({categories.length}개)</h2>
                                         <button
                                             onClick={() => setShowAddCategory(!showAddCategory)}
                                             className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
@@ -614,7 +745,7 @@
 
                                             <input
                                                 type="text"
-                                                placeholder="세부 카테고리 (선택사항 - 기존 카테고리 선택 시 추가됨)"
+                                                placeholder="세부 카테고리 (선택사항)"
                                                 value={newCategory.sub}
                                                 onChange={(e) => setNewCategory({ ...newCategory, sub: e.target.value })}
                                                 className="w-full p-2 border rounded mb-2"
@@ -662,11 +793,20 @@
 
                                 <div>
                                     <div className="flex justify-between items-center mb-4">
-                                        <h2 className="text-xl font-semibold">카드 관리 ({cards.length}개 - Firestore)</h2>
-                                        <div className="flex gap-2">
+                                        <h2 className="text-xl font-semibold">카드 관리 ({cards.length}개)</h2>
+                                        <div className="flex gap-2 flex-wrap">
+                                            {selectedCards.length > 0 && (
+                                                <button
+                                                    onClick={handleDeleteSelectedCards}
+                                                    className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm"
+                                                >
+                                                    <Trash2 size={20} />
+                                                    선택 삭제 ({selectedCards.length})
+                                                </button>
+                                            )}
                                             <label className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 cursor-pointer text-sm">
                                                 <Upload size={20} />
-                                                CSV 업로드 (추가)
+                                                CSV 업로드
                                                 <input type="file" accept=".csv" onChange={handleCSVUpload} className="hidden" />
                                             </label>
                                             <button
@@ -751,14 +891,22 @@
                                     )}
 
                                     <div className="space-y-2 max-h-96 overflow-y-auto">
-                                        {cards.map((card, i) => (
+                                        {cards.map((card) => (
                                             <div key={card.id} className="bg-gray-50 p-4 rounded-lg flex justify-between items-start">
-                                                <div className="flex-1">
-                                                    <div className="text-xs text-gray-500 mb-1">
-                                                        {card.mainCategory} {card.subCategory && `> ${card.subCategory}`}
+                                                <div className="flex items-start gap-3 flex-1">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedCards.includes(card.id)}
+                                                        onChange={() => toggleCardSelection(card.id)}
+                                                        className="mt-1 w-4 h-4"
+                                                    />
+                                                    <div className="flex-1">
+                                                        <div className="text-xs text-gray-500 mb-1">
+                                                            {card.mainCategory} {card.subCategory && `> ${card.subCategory}`}
+                                                        </div>
+                                                        <div className="font-semibold">{card.term}</div>
+                                                        <div className="text-sm text-gray-600 mt-1">{card.definition}</div>
                                                     </div>
-                                                    <div className="font-semibold">{card.term}</div>
-                                                    <div className="text-sm text-gray-600 mt-1">{card.definition}</div>
                                                 </div>
                                                 <div className="flex gap-2">
                                                     <button
@@ -789,13 +937,19 @@
             }
 
             return (
-                <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-100 p-2">
-                    <div className="max-w-4xl mx-auto">
+                <div className="study-mode-container bg-gradient-to-br from-purple-50 to-pink-100">
+                    {showPasswordModal && (
+                        <PasswordModal
+                            onSubmit={handleLogin}
+                            onCancel={() => setShowPasswordModal(false)}
+                        />
+                    )}
+                    
+                    <div className="max-w-4xl mx-auto p-2 h-full flex flex-col">
                         <div className="bg-white rounded-lg shadow-lg p-2 mb-2">
                             <div className="flex justify-between items-center mb-4">
                                 <h1 className="text-2xl font-bold text-gray-800">낱말카드 학습</h1>
 
-                                {/* 🔥 NEW: user 상태에 따라 버튼 변경 */}
                                 {user ? (
                                     <div className="flex items-center gap-2">
                                         <span className="text-sm text-gray-600 hidden sm:inline">{user.email}님</span>
@@ -806,15 +960,15 @@
                                             로그아웃
                                         </button>
                                         <button
-                                            onClick={() => setIsAdmin(true)} // 로그인 상태에서 관리자 모드 강제 전환
+                                            onClick={() => setIsAdmin(true)}
                                             className="px-3 py-1 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm"
                                         >
-                                            관리자 모드
+                                            관리자
                                         </button>
                                     </div>
                                 ) : (
                                     <button
-                                        onClick={handleLogin}
+                                        onClick={() => setShowPasswordModal(true)}
                                         className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm"
                                     >
                                         관리자 로그인
@@ -822,9 +976,7 @@
                                 )}
                             </div>
 
-                            {/* 필터 영역 */}
                             <div className="space-y-3 mb-3">
-                                {/* PC: 한 줄, 모바일: 각각 한 줄 */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     <select
                                         value={selectedMainCategory}
@@ -858,7 +1010,6 @@
                                     )}
                                 </div>
 
-                                {/* PC: 한 줄, 모바일: 한 줄 (즐겨찾기, <->, 셔플) */}
                                 <div className="flex gap-2">
                                     <button
                                         onClick={() => {
@@ -912,114 +1063,109 @@
                                     </button>
                                 </div>
                             </div>
+                        </div>
 
-                            {currentCard ? (
-                                <div className="mb-2">
-
-                                    {/* 💡 1. 카테고리 표시를 맨 위로 이동하고, 카드 번호 스타일 적용 */}
-                                    <div className="text-center text-gray-600 mb-2 order-1">
-                                        <div className="text-sm font-semibold text-gray-700">
-                                            {currentCard.original.mainCategory}
-                                            {currentCard.original.subCategory && ` > ${currentCard.original.subCategory}`}
-                                        </div>
-                                    </div>
-
-                                    <div
-                                        className="relative w-full h-80 cursor-pointer perspective-1000"
-                                        onClick={() => setIsFlipped(!isFlipped)}
-                                        onTouchStart={onTouchStart}
-                                        onTouchMove={onTouchMove}
-                                        onTouchEnd={onTouchEnd}
-                                    >
-                                        <div
-                                            className={`absolute w-full h-full transition-transform duration-500 transform-style-3d ${isFlipped ? 'rotate-x-180' : ''
-                                                }`}
-                                        >
-
-                                            <div className="absolute w-full h-full backface-hidden bg-white rounded-xl shadow-lg p-8 flex flex-col">
-                                                <div className="text-xs text-gray-400 mb-2">
-                                                    {currentCard.frontType === 'term' ? '용어' : '정의'}
-                                                </div>
-                                                <div className="flex-1 flex items-center justify-center">
-                                                      <div
-                                                        className={`break-words text-center font-bold ${
-                                                          currentCard.frontType === 'term' ? 'text-3xl' : 'text-xl'
-                                                        } text-gray-800`}
-                                                      >
-                                                        {currentCard.front}
-                                                    </div>
-                                                </div>
-                                                <div className="text-sm text-gray-400 text-center">클릭하여 뒤집기</div>
-                                            </div>
-
-                                            <div className="absolute w-full h-full backface-hidden bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg p-8 flex flex-col rotate-x-180">
-                                                <div className="text-xs text-white/70 mb-2">
-                                                    {currentCard.backType === 'term' ? '용어' : '정의'}
-                                                </div>
-                                                <div className="flex-1 flex items-center justify-center">
-                                                    <div
-                                                        className={`break-words text-center font-bold ${
-                                                          currentCard.backType === 'term' ? 'text-3xl' : 'text-xl'
-                                                        } text-white`}
-                                                      >
-                                                        {currentCard.back}
-                                                    </div>
-                                                </div>
-                                                <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
-                                                    <button
-                                                        onClick={() => toggleFavorite(currentCard.original.id)}
-                                                        className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                                                    >
-                                                        <Star
-                                                            size={24}
-                                                            fill={currentCard.original.favorite ? '#fbbf24' : 'none'}
-                                                            stroke="white"
-                                                        />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* 💡 2. 버튼 컨테이너 및 카드 번호 중앙 정렬 (수정된 부분) */}
-                                    <div className="flex justify-between items-center mt-6">
-                                        <button
-                                            onClick={goToPrev}
-                                            disabled={shuffledCards.length <= 1}
-                                            className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                                        >
-                                            이전
-                                        </button>
-
-                                        {/* 🔴 수정: 카드 번호 표시를 버튼들 사이에 배치하고 중앙 정렬합니다. */}
-                                        <div className="text-sm text-gray-600 text-center flex-1">
-                                            {currentCardIndex + 1} / {shuffledCards.length}
-                                        </div>
-
-                                        <button
-                                            onClick={goToNext}
-                                            disabled={shuffledCards.length <= 1}
-                                            className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                                        >
-                                            다음
-                                        </button>
+                        {currentCard ? (
+                            <div className="flex-1 flex flex-col mb-2" ref={cardAreaRef}>
+                                <div className="text-center text-gray-600 mb-2">
+                                    <div className="text-sm font-semibold text-gray-700">
+                                        {currentCard.original.mainCategory}
+                                        {currentCard.original.subCategory && ` > ${currentCard.original.subCategory}`}
                                     </div>
                                 </div>
-                            ) : (
+
+                                <div
+                                    className="relative flex-1 cursor-pointer perspective-1000"
+                                    onClick={() => setIsFlipped(!isFlipped)}
+                                    onTouchStart={onTouchStart}
+                                    onTouchMove={onTouchMove}
+                                    onTouchEnd={onTouchEnd}
+                                    style={{ touchAction: 'pan-x' }}
+                                >
+                                    <div
+                                        className={`absolute w-full h-full transition-transform duration-500 transform-style-3d ${isFlipped ? 'rotate-x-180' : ''
+                                            }`}
+                                    >
+                                        <div className="absolute w-full h-full backface-hidden bg-white rounded-xl shadow-lg p-8 flex flex-col">
+                                            <div className="text-xs text-gray-400 mb-2">
+                                                {currentCard.frontType === 'term' ? '용어' : '정의'}
+                                            </div>
+                                            <div className="flex-1 flex items-center justify-center overflow-y-auto">
+                                                <div
+                                                    className={`break-words text-center font-bold ${currentCard.frontType === 'term' ? 'text-3xl' : 'text-xl'
+                                                        } text-gray-800`}
+                                                >
+                                                    {currentCard.front}
+                                                </div>
+                                            </div>
+                                            <div className="text-sm text-gray-400 text-center">클릭하여 뒤집기</div>
+                                        </div>
+
+                                        <div className="absolute w-full h-full backface-hidden bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg p-8 flex flex-col rotate-x-180">
+                                            <div className="text-xs text-white/70 mb-2">
+                                                {currentCard.backType === 'term' ? '용어' : '정의'}
+                                            </div>
+                                            <div className="flex-1 flex items-center justify-center overflow-y-auto">
+                                                <div
+                                                    className={`break-words text-center font-bold ${currentCard.backType === 'term' ? 'text-3xl' : 'text-xl'
+                                                        } text-white`}
+                                                >
+                                                    {currentCard.back}
+                                                </div>
+                                            </div>
+                                            <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
+                                                <button
+                                                    onClick={() => toggleFavorite(currentCard.original.id)}
+                                                    className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                                                >
+                                                    <Star
+                                                        size={24}
+                                                        fill={currentCard.original.favorite ? '#fbbf24' : 'none'}
+                                                        stroke="white"
+                                                    />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between items-center mt-4">
+                                    <button
+                                        onClick={goToPrev}
+                                        disabled={shuffledCards.length <= 1}
+                                        className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                                    >
+                                        이전
+                                    </button>
+
+                                    <div className="text-sm text-gray-600 text-center flex-1">
+                                        {currentCardIndex + 1} / {shuffledCards.length}
+                                    </div>
+
+                                    <button
+                                        onClick={goToNext}
+                                        disabled={shuffledCards.length <= 1}
+                                        className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                                    >
+                                        다음
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex-1 flex items-center justify-center">
                                 <div className="bg-white rounded-lg shadow-lg p-12 text-center">
                                     <div className="text-gray-400 text-xl">
                                         카드가 없습니다. 관리자 모드에서 카드를 추가해주세요.
                                     </div>
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             );
         }
 
         ReactDOM.createRoot(document.getElementById('root')).render(<FlashcardApp />);
-
     </script>
 </body>
 
