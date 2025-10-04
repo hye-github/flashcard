@@ -38,17 +38,9 @@
             overflow-x: hidden;
         }
 
-        /* 💡 학습 모드에서 세로 스크롤 방지 */
-        body.no-scroll {
-            overflow: hidden;
-            position: fixed;
-            width: 100%;
-            height: 100%;
-        }
-
-        /* 💡 카드 영역 터치 처리 */
+        /* 💡 카드 영역만 터치 처리 - 세로 스크롤 차단, 가로 스와이프만 허용 */
         .card-area {
-            touch-action: pan-x; /* 가로 스와이프만 허용 */
+            touch-action: pan-x;
         }
     </style>
 </head>
@@ -579,19 +571,6 @@
                 ? []
                 : categories.find(c => c.main === selectedMainCategory)?.subs || [];
 
-            // 💡 학습 모드일 때 body에 no-scroll 클래스 추가/제거
-            useEffect(() => {
-                if (!isAdmin) {
-                    document.body.classList.add('no-scroll');
-                } else {
-                    document.body.classList.remove('no-scroll');
-                }
-
-                return () => {
-                    document.body.classList.remove('no-scroll');
-                };
-            }, [isAdmin]);
-
             if (isAdmin) {
                 return (
                     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -1004,8 +983,23 @@
                                             </div>
 
                                             <div className="absolute w-full h-full backface-hidden bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg p-8 flex flex-col rotate-x-180">
-                                                <div className="text-xs text-white/70 mb-2">
-                                                    {currentCard.backType === 'term' ? '용어' : '정의'}
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div className="text-xs text-white/70">
+                                                        {currentCard.backType === 'term' ? '용어' : '정의'}
+                                                    </div>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            toggleFavorite(currentCard.original.id);
+                                                        }}
+                                                        className="p-2 hover:bg-white/20 rounded-lg transition-colors -mt-2 -mr-2"
+                                                    >
+                                                        <Star
+                                                            size={24}
+                                                            fill={currentCard.original.favorite ? '#fbbf24' : 'none'}
+                                                            stroke="white"
+                                                        />
+                                                    </button>
                                                 </div>
                                                 <div className="flex-1 flex items-center justify-center">
                                                     <div
@@ -1015,18 +1009,6 @@
                                                     >
                                                         {currentCard.back}
                                                     </div>
-                                                </div>
-                                                <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
-                                                    <button
-                                                        onClick={() => toggleFavorite(currentCard.original.id)}
-                                                        className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                                                    >
-                                                        <Star
-                                                            size={24}
-                                                            fill={currentCard.original.favorite ? '#fbbf24' : 'none'}
-                                                            stroke="white"
-                                                        />
-                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
