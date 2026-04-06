@@ -22,7 +22,7 @@
 | 구분 | 기술 |
 |------|------|
 | Front-End | HTML5, CSS3, JavaScript |
-| Storage | Browser LocalStorage |
+| Storage | Firebase Firestore |
 | Deployment | GitHub Pages |
 
 ---
@@ -31,7 +31,7 @@
 
 - **CRUD 기반 카드 관리** — 단어/뜻 추가, 개별 삭제 및 전체 삭제 기능
 - **Excel 업로드** — Excel에 단어를 입력하여 대량 등록 가능
-- **상태 관리** — LocalStorage를 활용해 브라우저를 닫아도 학습 데이터 유지
+- **상태 관리** — Firebase Firestore를 활용해 어디서나 학습 데이터 유지
 - **인터랙티브 UI** — 카드 뒤집기 애니메이션, 입력 폼 토글 모달, 반응형 레이아웃 구현
 - **사용자 경험(UX)** — 데이터가 없을 시 안내 문구 표시, 직관적인 카드 추가 인터페이스
 
